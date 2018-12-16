@@ -1,0 +1,268 @@
+---
+title: "Code"
+author: "Kanyao Han"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(data.table)
+library(FactoMineR)
+library(explor)
+```
+
+```{r}
+school <- read_csv("C:/Users/hankanyao/Desktop/algorithm/school.csv") %>%
+  filter(Sex != "Other",
+         !(Current_status %in% c("Middle/high school", "Work")),
+         !(Province %in% c("Hongkong", "Taiwan", "Macao"))) %>%
+  select(-Current_status, -Sexual_orientation_current) %>%
+  drop_na() %>%
+  data.table()
+```
+
+```{r}
+a <- "Normative Masculinity" 
+b <- "Masculinity with some Femininity"
+d <- "Neutral"
+e <- "Femininity with some masculinity"
+f <- "Normative Femininity"
+
+male = school[Sex == "Male"]
+male[Gender_performance == a, GP_3 := "Normative"]
+male[Gender_performance == b, GP_3 := "Half_normative"]
+male[Gender_performance %in% c(d,e,f), GP_3 := "Not_normative"]
+female = school[Sex == "Female"]
+female[Gender_performance %in% c(e,f), GP_3 := "Normative"]
+female[Gender_performance == d, GP_3 := "Half_normative"]
+female[Gender_performance %in% c(a, b), GP_3 := "Not_normative"]
+school  <- rbind(male, female)
+
+school[School_quality %in% c("Bad normal high school", "Very bad high school",
+                             "Average normal high school"), 
+       School_quality := "Average or below"]
+
+school[Sexual_education %in% c("Occasionally", "Frequently", "Very frequently"), 
+       Sexual_education := "Occasionally or more"]
+
+school[teacher_attitudes %in% c("Very bad", "Bad"), teacher_attitudes := "Below average"]
+
+school[Academic_performance %in% c("81% - 100%", "61% - 80%" ),
+       Academic_performance := "Below average"]
+
+school[Family %in% c("Very bad", "Bad"), Family := "Bad"]
+school[Family %in% c("Very good", "Good"), Family := "Good"]
+
+school[Verbal_bullying %in% c("Very frequently/severely", 
+                              "Frequently/severely", "Occasionally"), 
+       Verbal_bullying := "Occasionally or more"]
+
+school[Physical_bullying %in% c("Very frequently/severely", 
+                                "Frequently/severely", "Occasionally"), 
+       Physical_bullying := "Occasionally or more"]
+
+school[Isolated %in% c("Very Severely", "Severely", "Moderately"), 
+       Isolated := "Moderately or more"]
+
+school[Sexual_orientation_high_school != "Heterosexual",
+       Sexual_orientation_high_school := "Sexual minority"]
+
+school[Known_by_others == "Not applicable",
+       Known_by_others := "No one or only close friends know or believe"]
+
+Northeast <- c("Heilongjiang", "Liaoning", "Jilin")
+with_big_city <- c("Beijing", "Shanghai", "Guangdong",
+                   "Jiangsu", "Zhejiang", "Tianjin", "Fujian")
+North_central <- c("Shandong", "Henan", "Hebei", "Hubei", "Anhui",
+                   "Shanxi", "Shaanxi", "Hunan", "Jiangxi")
+Ethnicity <- c("Xinjiang (Uygur Autonomous Region)", "Ningxia",
+               "Tibet", "Gansu", "Qinghai", "Inner Mongolia")
+Southwest <- c("Sichuan", "Chongqing", "Guizhou", "Guangxi", "Hainan", "Yunnan")
+school[Province %in% Northeast, Province := "Northeast"]
+school[Province %in% with_big_city, Province := "with_big_city"]
+school[Province %in% North_central, Province := "North_central"]
+school[Province %in% Ethnicity, Province := "Ethnicity"]
+school[Province %in% Southwest, Province := "Southwest"]
+
+
+ave <- "Average (including slightly above or below the average)"
+key <- "Key high school (Recognized by the goverment)"
+school <- school %>%
+  drop_na() %>%
+  mutate(Sex = factor(Sex, levels = c("Male", "Female")),
+         
+         Gender = factor(Gender, levels = c("Man", "Woman", "Other")),
+         
+         Sexual_orientation_high_school = factor(Sexual_orientation_high_school, 
+                                                 levels = c("Heterosexual", "Sexual minority")),
+         
+         Sexual_role = factor(Sexual_role, 
+                              levels = c("Bottom", "Top",
+                                         "Versatile", "Not applicable")),
+         
+         Gender_performance = factor(Gender_performance,
+                                     levels = c("Normative Masculinity",
+                                                "Masculinity with some Femininity",
+                                                "Neutral",
+                                                "Femininity with some masculinity",
+                                                "Normative Femininity")),
+         
+         Known_by_others = factor(Known_by_others,
+                                  levels= c("No one or only close friends know or believe",
+                                           "Some or many people know/believe")),
+         
+         Area = factor(Area, levels = c("Urban", "Rural")),
+         
+         School_quality = factor(School_quality, 
+                                 levels = c("Average or below",
+                                            "Good normal high school", 
+                                            key)),
+         
+         Academic_performance = factor(Academic_performance,
+                                       levels = c("Top 20%", "21% - 40%",
+                                                  "41% - 60%", "Below average")),
+         
+         Sexual_education = factor(Sexual_education,
+                                   levels = c("None or Very rarely",
+                                              "Rarely",
+                                              "Occasionally or more")),
+         
+         Family = factor(Family, levels = c("Good", "Average", "Bad")),
+         
+         teacher_attitudes= factor(teacher_attitudes, 
+                                   levels = c("Below average", "Average",
+                                              "Good", "Very good")),
+         
+         Facial_appearance = factor(Facial_appearance,
+                                    levels = c("Good looking", ave, "Bad looking")),
+         
+         Overweight = factor(Overweight, 
+                             levels = c("Not overweight", "Overweight", "Obese")),
+         
+         Height = factor(Height, levels = c("Short", "Average", "Tall")),
+         
+         Body = factor(Body, levels = c("Weak", "Average", "Strong")),
+         
+         Verbal_bullying = factor(Verbal_bullying,
+                                  levels = c("None or Very rarely/slightly",
+                                             "Rarely/slightly",
+                                             "Occasionally or more")),
+         
+         Physical_bullying = factor(Physical_bullying,
+                                    levels = c("None or Very rarely/slightly",
+                                               "Rarely/slightly",
+                                               "Occasionally or more")),
+         
+         Isolated = factor(Isolated, levels = c("None or very slightly",
+                                                "Slightly", 
+                                                "Moderately or more")),
+         GP_3 = factor(GP_3, levels = c("Normative",
+                                        "Half_normative",
+                                        "Not_normative")),
+         
+         Contact = factor(Contact, levels = c("Yes", "No")))
+
+```
+
+```{r}
+school1 <- school %>%
+  select(-ID, -`submission time`, - University_name, - College_quality) %>%
+  mutate(Sex1 = Sex, GP_31 = GP_3, Sex2 = Sex, 
+         role = Sexual_role,
+         Known = Known_by_others, Sex3 = Sex) %>%
+  unite("GS", c("GP_31", "Sex1"), sep = "_") %>%
+  unite("RS", c("role", "Sex2")) %>%
+  unite("KS", c("Known", "Sex3"))
+```
+
+```{r}
+school2 <- school1[,c(3, 5:22, 24)] %>%
+  filter(Sex == "Male")
+
+school3 <- school2[,-c(1, 4, 6, 9, 10, 13, 14, 21:23)]
+res <- MCA(school3, quali.sup= c(10:12))
+explor(res)
+colnames(school3)
+```
+
+```{r}
+table <- school1 %>%
+  filter(Sexual_orientation_high_school == "Sexual minority") %>%
+  group_by(Sexual_role, Sex) %>%
+  count() %>%
+  group_by(Sex) %>%
+  mutate(percent = n/sum(n)) %>%
+  arrange(Sex, Sexual_role) %>%
+  rename("Percent" = percent)
+
+```
+
+
+
+```{r}
+summary(a <- aov(as.numeric(Gender_performance) ~ SS, data = school7))
+summary(b <- aov(as.numeric(Area) ~ SS, data = school7))
+summary(c <- aov(as.numeric(School_quality) ~ SS, data = school7))
+summary(d <- aov(as.numeric(Sexual_education) ~ SS, data = school7))
+summary(e <- aov(as.numeric(Family) ~ SS, data = school7))
+summary(f <- aov(as.numeric(teacher_attitudes) ~ SS, data = school7))
+summary(g <- aov(as.numeric(Height) ~ SS, data = school7))
+summary(h <- aov(as.numeric(Body) ~ SS, data = school7))
+summary(i <- aov(as.numeric(Verbal_bullying) ~ SS, data = school7))
+summary(j <- aov(as.numeric(Physical_bullying) ~ SS, data = school7))
+summary(k <- aov(as.numeric(Isolated) ~ SS, data = school7))
+
+
+TukeyHSD(a)
+TukeyHSD(b)
+TukeyHSD(c)
+TukeyHSD(d)
+TukeyHSD(e)
+TukeyHSD(f)
+TukeyHSD(g)
+TukeyHSD(h)
+TukeyHSD(i)
+TukeyHSD(j)
+TukeyHSD(k)
+```
+
+```{r}
+ggplot(school, aes(Sexual_orientation_high_school)) +
+  geom_bar(aes(fill = Gender_performance), position = "fill") +
+  facet_wrap(~ Sex) +
+  theme_bw()
+```
+
+```{r}
+ggplot(school, aes(Sexual_orientation_high_school)) +
+  geom_bar(aes(fill = Verbal_bullying), position = "fill") +
+  facet_wrap(~ Sex) +
+  theme_bw()
+  
+```
+
+```{r}
+ggplot(filter(school, Sex == "Male" & Sexual_orientation_high_school == "Sexual minority"), aes(Sexual_role)) +
+  geom_bar(aes(fill = Gender_performance), position = "fill") +
+  theme_bw() +
+  labs(y = "Proportion", 
+       x = "Sexual Role") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5))
+
+ggplot(filter(school, Sex == "Male" & Sexual_orientation_high_school == "Sexual minority"), aes(Sexual_role)) +
+  geom_bar(aes(fill = Verbal_bullying), position = "fill") +
+  theme_bw() +
+  labs(y = "Proportion", 
+       x = "Sexual Role") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5))
+```
+
+
+
+
+
+
